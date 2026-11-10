@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BJT CE DC Bias Calculator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="card">
+    <h1>BJT Common-Emitter DC Bias</h1>
+    <p class="subtitle">NPN voltage-divider bias &mdash; DC operating point</p>
+
+    <form action="/calculate" method="post">
+      <div class="grid">
+        {% set fields = [
+          ('vcc', 'VCC', 'V'),
+          ('r1', 'R1', 'Ω'),
+          ('r2', 'R2', 'Ω'),
+          ('rc', 'RC', 'Ω'),
+          ('re', 'RE', 'Ω'),
+          ('beta', 'β', ''),
+          ('vbe', 'VBE', 'V')
+        ] %}
+        {% for name, label, unit in fields %}
+        <div class="field">
+          <label for="{{ name }}">{{ label }}{% if unit %} ({{ unit }}){% endif %}</label>
+          <input id="{{ name }}" name="{{ name }}" type="number" step="any"
+                 value="{{ values[name] }}" required>
+          {% if errors.get(name) %}<span class="error">{{ errors[name] }}</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <button type="submit">Calculate</button>
+    </form>
+  </main>
+</body>
+</html>
