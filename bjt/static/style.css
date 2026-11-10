@@ -99,6 +99,17 @@ button:hover {
   border-top: 1px solid var(--line);
 }
 
+.results-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.form-error {
+  margin: 16px 0 0;
+}
+
 .badge {
   display: inline-block;
   padding: 4px 10px;

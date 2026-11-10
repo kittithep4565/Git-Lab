@@ -33,6 +33,58 @@
       </div>
       <button type="submit">Calculate</button>
     </form>
+
+    {% if errors.get('_form') %}
+    <p class="error form-error">{{ errors['_form'] }}</p>
+    {% endif %}
+
+    {% if result %}
+    <section class="results">
+      <div class="results-header">
+        <span class="badge badge-{{ result.region }}">{{ result.region|upper }}</span>
+        <span class="badge {% if comparison.matches %}match-ok{% else %}match-bad{% endif %}">
+          {% if comparison.matches %}Matches within tolerance{% else %}Mismatch{% endif %}
+        </span>
+      </div>
+
+      {% if result.warnings %}
+      <ul class="warnings">
+        {% for warning in result.warnings %}
+        <li>{{ warning }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      <table>
+        <thead>
+          <tr>
+            <th>Quantity</th>
+            <th>Closed-form</th>
+            <th>Independent</th>
+            <th>Delta</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for quantity, label, kind in [
+            ('ib', 'IB', 'current'),
+            ('ic', 'IC', 'current'),
+            ('ie', 'IE', 'current'),
+            ('vb', 'VB', 'voltage'),
+            ('ve', 'VE', 'voltage'),
+            ('vc', 'VC', 'voltage'),
+            ('vce', 'VCE', 'voltage')
+          ] %}
+          <tr>
+            <td>{{ label }}</td>
+            <td>{% if kind == 'current' %}{{ result[quantity]|current }}{% else %}{{ result[quantity]|voltage }}{% endif %}</td>
+            <td>{% if kind == 'current' %}{{ independent[quantity]|current }}{% else %}{{ independent[quantity]|voltage }}{% endif %}</td>
+            <td>{{ comparison.deltas[quantity]|delta }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
   </main>
 </body>
 </html>
