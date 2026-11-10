@@ -190,13 +190,52 @@
           <svg class="icon"><use href="#icon-chart"></use></svg>
           <h2>DC Bias Results</h2>
         </div>
-        <div class="results-empty">
-          {% if errors %}
-          Enter valid parameters and calculate to see the DC operating point.
+
+        {% if result %}
+        <table class="results-table">
+          <tbody>
+            <tr><th scope="row">V<sub>B</sub></th><td>{{ result['vb']|voltage }}</td></tr>
+            <tr><th scope="row">V<sub>E</sub></th><td>{{ result['ve']|voltage }}</td></tr>
+            <tr><th scope="row">V<sub>C</sub></th><td>{{ result['vc']|voltage }}</td></tr>
+            <tr><th scope="row">V<sub>CE</sub></th><td>{{ result['vce']|voltage }}</td></tr>
+            <tr><th scope="row">I<sub>B</sub></th><td>{{ result['ib']|current }}</td></tr>
+            <tr><th scope="row">I<sub>C</sub></th><td>{{ result['ic']|current }}</td></tr>
+            <tr><th scope="row">I<sub>E</sub></th><td>{{ result['ie']|current }}</td></tr>
+          </tbody>
+        </table>
+
+        <div class="region-box region-{{ result.region }}">
+          {% if result.region == 'active' %}
+          <div class="region-title">
+            <svg class="icon"><use href="#icon-check"></use></svg>
+            <span>Active region approximation OK</span>
+          </div>
+          <p>V<sub>CE</sub> = {{ result['vce']|voltage }} &gt; 0.2 V (transistor in active region)</p>
+          {% elif result.region == 'saturation' %}
+          <div class="region-title">
+            <svg class="icon"><use href="#icon-alert"></use></svg>
+            <span>Saturation region</span>
+          </div>
+          <p>V<sub>CE</sub> = {{ result['vce']|voltage }} &lt; 0.2 V (active-region equations are not valid)</p>
           {% else %}
-          Enter valid parameters and calculate to see the DC operating point.
+          <div class="region-title">
+            <svg class="icon"><use href="#icon-alert"></use></svg>
+            <span>Cutoff region</span>
+          </div>
+          <p>I<sub>B</sub> = 0 (transistor is off)</p>
           {% endif %}
         </div>
+
+        {% if comparison and comparison.matches %}
+        <span class="sr-only">Independent cross-check passed</span>
+        {% elif comparison and not comparison.matches %}
+        <p class="crosscheck-error">Independent cross-check did not match; results may be unreliable.</p>
+        {% endif %}
+        {% else %}
+        <div class="results-empty">
+          Enter valid parameters and calculate to see the DC operating point.
+        </div>
+        {% endif %}
       </section>
     </main>
 
