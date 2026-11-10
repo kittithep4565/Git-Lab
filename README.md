@@ -17,3 +17,8 @@ python run.py
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+### Units
+
+Voltages accept `V` or `mV`. Resistances accept `Ω`, `kΩ`, or `MΩ`. Beta is
+dimensionless. Values are converted to SI units before calculation.

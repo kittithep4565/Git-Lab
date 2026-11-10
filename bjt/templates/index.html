@@ -3,88 +3,254 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BJT CE DC Bias Calculator</title>
+  <title>Lab 02: BJT DC Bias Web App</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <main class="card">
-    <h1>BJT Common-Emitter DC Bias</h1>
-    <p class="subtitle">NPN voltage-divider bias &mdash; DC operating point</p>
+  <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="icon-chip" viewBox="0 0 24 24">
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+      <rect x="8" y="8" width="8" height="8" rx="1" />
+      <path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2" />
+    </symbol>
+    <symbol id="icon-code" viewBox="0 0 24 24">
+      <path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 4l-4 16" />
+    </symbol>
+    <symbol id="icon-sliders" viewBox="0 0 24 24">
+      <path d="M4 7h16M4 17h16" />
+      <circle cx="9" cy="7" r="2" />
+      <circle cx="15" cy="17" r="2" />
+    </symbol>
+    <symbol id="icon-chart" viewBox="0 0 24 24">
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </symbol>
+    <symbol id="icon-calculator" viewBox="0 0 24 24">
+      <rect x="5" y="2" width="14" height="20" rx="2" />
+      <path d="M8 6h8M8 11h2M12 11h2M16 11h2M8 15h2M12 15h2M16 15h2M8 19h6" />
+    </symbol>
+    <symbol id="icon-target" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8 12 2.5 2.5L16 9" />
+    </symbol>
+    <symbol id="icon-alert" viewBox="0 0 24 24">
+      <path d="M12 3 2.5 20h19L12 3Z" />
+      <path d="M12 9v5M12 17h.01" />
+    </symbol>
+    <symbol id="icon-circuit" viewBox="0 0 24 24">
+      <circle cx="6" cy="6" r="2" />
+      <circle cx="18" cy="6" r="2" />
+      <circle cx="12" cy="18" r="2" />
+      <path d="M8 6h3M13 6h3M6 8v4h6v4M18 8v4h-6" />
+    </symbol>
+  </svg>
 
-    <form action="/calculate" method="post">
-      <div class="grid">
-        {% set fields = [
-          ('vcc', 'VCC', 'V'),
-          ('r1', 'R1', 'Ω'),
-          ('r2', 'R2', 'Ω'),
-          ('rc', 'RC', 'Ω'),
-          ('re', 'RE', 'Ω'),
-          ('beta', 'β', ''),
-          ('vbe', 'VBE', 'V')
-        ] %}
-        {% for name, label, unit in fields %}
-        <div class="field">
-          <label for="{{ name }}">{{ label }}{% if unit %} ({{ unit }}){% endif %}</label>
-          <input id="{{ name }}" name="{{ name }}" type="number" step="any"
-                 value="{{ values[name] }}" required>
-          {% if errors.get(name) %}<span class="error">{{ errors[name] }}</span>{% endif %}
+  <div class="page">
+    <header class="page-header">
+      <div class="brand">
+        <span class="brand-icon"><svg class="icon"><use href="#icon-chip"></use></svg></span>
+        <div class="brand-text">
+          <h1>Lab 02: BJT DC Bias Web App</h1>
+          <p>ENG29 2121 &ndash; Common Emitter (Voltage Divider Bias)</p>
         </div>
-        {% endfor %}
       </div>
-      <button type="submit">Calculate</button>
-    </form>
-
-    {% if errors.get('_form') %}
-    <p class="error form-error">{{ errors['_form'] }}</p>
-    {% endif %}
-
-    {% if result %}
-    <section class="results">
-      <div class="results-header">
-        <span class="badge badge-{{ result.region }}">{{ result.region|upper }}</span>
-        <span class="badge {% if comparison.matches %}match-ok{% else %}match-bad{% endif %}">
-          {% if comparison.matches %}Matches within tolerance{% else %}Mismatch{% endif %}
-        </span>
+      <div class="course-badge">
+        <svg class="icon"><use href="#icon-code"></use></svg>
+        <span>Computer Programming for<br>Electrical Engineers</span>
       </div>
+    </header>
 
-      {% if result.warnings %}
-      <ul class="warnings">
-        {% for warning in result.warnings %}
-        <li>{{ warning }}</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
+    <main class="dashboard">
+      <form class="panel input-panel" action="/calculate" method="post">
+        <div class="panel-header">
+          <svg class="icon"><use href="#icon-sliders"></use></svg>
+          <h2>Input Parameters</h2>
+        </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Quantity</th>
-            <th>Closed-form</th>
-            <th>Independent</th>
-            <th>Delta</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for quantity, label, kind in [
-            ('ib', 'IB', 'current'),
-            ('ic', 'IC', 'current'),
-            ('ie', 'IE', 'current'),
-            ('vb', 'VB', 'voltage'),
-            ('ve', 'VE', 'voltage'),
-            ('vc', 'VC', 'voltage'),
-            ('vce', 'VCE', 'voltage')
-          ] %}
-          <tr>
-            <td>{{ label }}</td>
-            <td>{% if kind == 'current' %}{{ result[quantity]|current }}{% else %}{{ result[quantity]|voltage }}{% endif %}</td>
-            <td>{% if kind == 'current' %}{{ independent[quantity]|current }}{% else %}{{ independent[quantity]|voltage }}{% endif %}</td>
-            <td>{{ comparison.deltas[quantity]|delta }}</td>
-          </tr>
+        <div class="field-list">
+          {% for name, symbol, subscript, description in field_meta %}
+          <div class="field-row">
+            <label class="field-label" for="{{ name }}">
+              <span class="symbol">{{ symbol }}{% if subscript %}<sub>{{ subscript }}</sub>{% endif %}</span>
+              <span class="field-description">({{ description }})</span>
+            </label>
+            <div class="field-entry">
+              <div class="input-unit">
+                <input id="{{ name }}" name="{{ name }}" type="number" step="any"
+                       inputmode="decimal" value="{{ values[name] }}" required>
+                {% if unit_options[name]|length > 1 %}
+                <span class="unit-select">
+                  <select id="{{ name }}_unit" name="{{ name }}_unit"
+                          aria-label="{{ symbol }}{% if subscript %}{{ subscript }}{% endif %} unit">
+                    {% for unit in unit_options[name] %}
+                    <option value="{{ unit }}"{% if unit == units[name] %} selected{% endif %}>{{ unit }}</option>
+                    {% endfor %}
+                  </select>
+                </span>
+                {% else %}
+                <span class="unit-static" aria-hidden="true">&mdash;</span>
+                <input type="hidden" id="{{ name }}_unit" name="{{ name }}_unit" value="">
+                {% endif %}
+              </div>
+              {% if errors.get(name) %}
+              <p class="field-error">{{ errors[name] }}</p>
+              {% endif %}
+            </div>
+          </div>
           {% endfor %}
-        </tbody>
-      </table>
-    </section>
-    {% endif %}
-  </main>
+        </div>
+
+        <button class="calculate" type="submit">
+          <svg class="icon"><use href="#icon-calculator"></use></svg>
+          Calculate DC Bias
+        </button>
+        {% if errors.get('_form') %}
+        <p class="form-error">{{ errors['_form'] }}</p>
+        {% endif %}
+      </form>
+
+      <section class="panel circuit-panel">
+        <div class="panel-header">
+          <svg class="icon"><use href="#icon-circuit"></use></svg>
+          <h2>Circuit: Common-Emitter Amplifier</h2>
+        </div>
+
+        <svg class="schematic" viewBox="0 0 420 340" role="img"
+             aria-label="NPN common-emitter amplifier with voltage-divider bias">
+          <defs>
+            <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0 8 4 0 8Z" class="arrow-head"></path>
+            </marker>
+          </defs>
+
+          <text x="210" y="26" text-anchor="middle" class="sch-label">
+            V<tspan class="sch-sub">CC</tspan> = {{ values.vcc }} {{ units.vcc }}
+          </text>
+          <line x1="210" y1="34" x2="210" y2="50" class="sch-wire"></line>
+          <line x1="80" y1="50" x2="320" y2="50" class="sch-wire"></line>
+          <circle cx="210" cy="50" r="2.6" class="sch-node"></circle>
+
+          <line x1="80" y1="50" x2="80" y2="78" class="sch-wire"></line>
+          <path d="M80 78 l10 6 l-20 10 l20 10 l-20 10 l20 10 l-10 6" class="sch-res"></path>
+          <line x1="80" y1="130" x2="80" y2="170" class="sch-wire"></line>
+          <text x="55" y="98" text-anchor="end" class="sch-label">R<tspan class="sch-sub">1</tspan></text>
+          <text x="55" y="114" text-anchor="end" class="sch-value">{{ values.r1 }} {{ units.r1 }}</text>
+
+          <circle cx="80" cy="170" r="2.6" class="sch-node"></circle>
+          <line x1="80" y1="170" x2="192" y2="170" class="sch-wire"></line>
+
+          <line x1="80" y1="170" x2="80" y2="190" class="sch-wire"></line>
+          <path d="M80 190 l10 6 l-20 10 l20 10 l-20 10 l20 10 l-10 6" class="sch-res"></path>
+          <line x1="80" y1="242" x2="80" y2="270" class="sch-wire"></line>
+          <text x="55" y="212" text-anchor="end" class="sch-label">R<tspan class="sch-sub">2</tspan></text>
+          <text x="55" y="228" text-anchor="end" class="sch-value">{{ values.r2 }} {{ units.r2 }}</text>
+          <line x1="62" y1="270" x2="98" y2="270" class="sch-wire"></line>
+          <line x1="68" y1="276" x2="92" y2="276" class="sch-wire"></line>
+          <line x1="74" y1="282" x2="86" y2="282" class="sch-wire"></line>
+
+          <line x1="320" y1="50" x2="320" y2="78" class="sch-wire"></line>
+          <path d="M320 78 l10 6 l-20 10 l20 10 l-20 10 l20 10 l-10 6" class="sch-res"></path>
+          <line x1="320" y1="130" x2="320" y2="140" class="sch-wire"></line>
+          <text x="344" y="98" text-anchor="start" class="sch-label">R<tspan class="sch-sub">C</tspan></text>
+          <text x="344" y="114" text-anchor="start" class="sch-value">{{ values.rc }} {{ units.rc }}</text>
+
+          <circle cx="320" cy="140" r="2.6" class="sch-node"></circle>
+          <line x1="320" y1="140" x2="225" y2="140" class="sch-wire"></line>
+
+          <circle cx="215" cy="170" r="34" class="sch-transistor"></circle>
+          <line x1="192" y1="150" x2="192" y2="190" class="sch-base"></line>
+          <line x1="192" y1="158" x2="225" y2="140" class="sch-wire"></line>
+          <line x1="192" y1="182" x2="225" y2="200" class="sch-wire"
+                marker-end="url(#arrow)"></line>
+
+          <text x="256" y="158" text-anchor="start" class="sch-label">Q1</text>
+          <text x="256" y="174" text-anchor="start" class="sch-label">NPN</text>
+          <text x="256" y="190" text-anchor="start" class="sch-value">(β = {{ values.beta }})</text>
+
+          <line x1="225" y1="200" x2="320" y2="215" class="sch-wire"></line>
+          <circle cx="320" cy="215" r="2.6" class="sch-node"></circle>
+          <line x1="320" y1="215" x2="320" y2="230" class="sch-wire"></line>
+          <path d="M320 230 l10 6 l-20 10 l20 10 l-20 10 l20 10 l-10 6" class="sch-res"></path>
+          <line x1="320" y1="282" x2="320" y2="300" class="sch-wire"></line>
+          <text x="344" y="252" text-anchor="start" class="sch-label">R<tspan class="sch-sub">E</tspan></text>
+          <text x="344" y="268" text-anchor="start" class="sch-value">{{ values.re }} {{ units.re }}</text>
+          <line x1="302" y1="300" x2="338" y2="300" class="sch-wire"></line>
+          <line x1="308" y1="306" x2="332" y2="306" class="sch-wire"></line>
+          <line x1="314" y1="312" x2="326" y2="312" class="sch-wire"></line>
+        </svg>
+      </section>
+
+      <section class="panel results-panel">
+        <div class="panel-header">
+          <svg class="icon"><use href="#icon-chart"></use></svg>
+          <h2>DC Bias Results</h2>
+        </div>
+
+        {% if result %}
+        <table class="results-table">
+          <tbody>
+            <tr><th scope="row">V<sub>B</sub></th><td>{{ result['vb']|voltage }}</td></tr>
+            <tr><th scope="row">V<sub>E</sub></th><td>{{ result['ve']|voltage }}</td></tr>
+            <tr><th scope="row">V<sub>C</sub></th><td>{{ result['vc']|voltage }}</td></tr>
+            <tr><th scope="row">V<sub>CE</sub></th><td>{{ result['vce']|voltage }}</td></tr>
+            <tr><th scope="row">I<sub>B</sub></th><td>{{ result['ib']|current }}</td></tr>
+            <tr><th scope="row">I<sub>C</sub></th><td>{{ result['ic']|current }}</td></tr>
+            <tr><th scope="row">I<sub>E</sub></th><td>{{ result['ie']|current }}</td></tr>
+          </tbody>
+        </table>
+
+        <div class="region-box region-{{ result.region }}">
+          {% if result.region == 'active' %}
+          <div class="region-title">
+            <svg class="icon"><use href="#icon-check"></use></svg>
+            <span>Active region approximation OK</span>
+          </div>
+          <p>V<sub>CE</sub> = {{ result['vce']|voltage }} &gt; 0.2 V (transistor in active region)</p>
+          {% elif result.region == 'saturation' %}
+          <div class="region-title">
+            <svg class="icon"><use href="#icon-alert"></use></svg>
+            <span>Saturation region</span>
+          </div>
+          <p>V<sub>CE</sub> = {{ result['vce']|voltage }} &lt; 0.2 V (active-region equations are not valid)</p>
+          {% else %}
+          <div class="region-title">
+            <svg class="icon"><use href="#icon-alert"></use></svg>
+            <span>Cutoff region</span>
+          </div>
+          <p>I<sub>B</sub> = 0 (transistor is off)</p>
+          {% endif %}
+        </div>
+
+        {% if comparison and comparison.matches %}
+        <span class="sr-only">Independent cross-check passed</span>
+        {% elif comparison and not comparison.matches %}
+        <p class="crosscheck-error">Independent cross-check did not match; results may be unreliable.</p>
+        {% endif %}
+        {% else %}
+        <div class="results-empty">
+          Enter valid parameters and calculate to see the DC operating point.
+        </div>
+        {% endif %}
+      </section>
+    </main>
+
+    <footer class="goal-panel">
+      <div class="goal-label">
+        <svg class="icon"><use href="#icon-target"></use></svg>
+        <strong>Week 2 Goal</strong>
+      </div>
+      <p>
+        <strong>Rough target for this lab:</strong> Build a Flask web app that takes the circuit parameters,
+        computes the BJT DC bias (V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>,
+        I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub>) for a common-emitter amplifier with
+        voltage-divider bias, and displays the results.
+      </p>
+    </footer>
+  </div>
 </body>
 </html>
