@@ -13,7 +13,8 @@ class TestFormPage(unittest.TestCase):
         html = response.get_data(as_text=True)
         for name in ("vcc", "r1", "r2", "rc", "re", "beta", "vbe"):
             self.assertIn(f'name="{name}"', html)
-        self.assertIn('value="47000"', html)
+        self.assertIn('value="100"', html)
+        self.assertIn('name="r1_unit"', html)
         self.assertIn('action="/calculate"', html)
         self.assertIn('method="post"', html)
 

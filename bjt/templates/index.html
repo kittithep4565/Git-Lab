@@ -3,88 +3,280 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BJT CE DC Bias Calculator</title>
+  <title>Lab 02: BJT DC Bias Web App</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <main class="card">
-    <h1>BJT Common-Emitter DC Bias</h1>
-    <p class="subtitle">NPN voltage-divider bias &mdash; DC operating point</p>
+<div class="page">
 
-    <form action="/calculate" method="post">
-      <div class="grid">
-        {% set fields = [
-          ('vcc', 'VCC', 'V'),
-          ('r1', 'R1', 'Ω'),
-          ('r2', 'R2', 'Ω'),
-          ('rc', 'RC', 'Ω'),
-          ('re', 'RE', 'Ω'),
-          ('beta', 'β', ''),
-          ('vbe', 'VBE', 'V')
-        ] %}
-        {% for name, label, unit in fields %}
-        <div class="field">
-          <label for="{{ name }}">{{ label }}{% if unit %} ({{ unit }}){% endif %}</label>
-          <input id="{{ name }}" name="{{ name }}" type="number" step="any"
-                 value="{{ values[name] }}" required>
-          {% if errors.get(name) %}<span class="error">{{ errors[name] }}</span>{% endif %}
+  <header class="app-header">
+    <div class="brand">
+      <svg class="chip" viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor"
+           stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="12" y="12" width="24" height="24" rx="4"/>
+        <rect x="19" y="19" width="10" height="10" rx="2"/>
+        <path d="M18 5v7M24 5v7M30 5v7M18 36v7M24 36v7M30 36v7M5 18h7M5 24h7M5 30h7M36 18h7M36 24h7M36 30h7"/>
+      </svg>
+      <div class="titles">
+        <h1>Lab 02: BJT DC Bias Web App</h1>
+        <p class="subtitle">ENG29 2121 &ndash; Common Emitter (Voltage Divider Bias)</p>
+      </div>
+    </div>
+    <div class="course-badge">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+           stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 7 4 12l5 5M15 7l5 5-5 5"/>
+      </svg>
+      <span>Computer Programming for<br>Electrical Engineers</span>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <section class="panel panel-inputs">
+      <h2>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3.2"/>
+          <path d="M12 2.6v2.6M12 18.8v2.6M2.6 12h2.6M18.8 12h2.6M4.8 4.8l1.9 1.9M17.3 17.3l1.9 1.9M4.8 19.2l1.9-1.9M17.3 6.7l1.9-1.9"/>
+        </svg>
+        Input Parameters
+      </h2>
+
+      <form action="/calculate" method="post">
+        {% for field, meta in labels.items() %}
+        {% set sym = meta[0] %}{% set sub = meta[1] %}{% set hint = meta[2] %}
+        <div class="field{% if errors.get(field) %} has-error{% endif %}">
+          <label for="{{ field }}">
+            <span class="sym">{{ sym }}{% if sub %}<sub>{{ sub }}</sub>{% endif %}</span>
+            <span class="hint">({{ hint }})</span>
+          </label>
+          <div class="control">
+            <input id="{{ field }}" name="{{ field }}" type="number" step="any"
+                   value="{{ values[field] }}" required>
+            {% if field == 'beta' %}
+            <span class="unit-static" aria-hidden="true">&ndash;</span>
+            {% else %}
+            <select name="{{ field }}_unit" aria-label="{{ field }} unit">
+              {% for unit, _factor in unit_options[field] %}
+              <option value="{{ unit }}"{% if units[field] == unit %} selected{% endif %}>{{ unit }}</option>
+              {% endfor %}
+            </select>
+            {% endif %}
+          </div>
+          {% if errors.get(field) %}<span class="error">{{ errors[field] }}</span>{% endif %}
         </div>
         {% endfor %}
-      </div>
-      <button type="submit">Calculate</button>
-    </form>
 
-    {% if errors.get('_form') %}
-    <p class="error form-error">{{ errors['_form'] }}</p>
-    {% endif %}
+        <button class="primary" type="submit">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+               stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="2.5"/>
+            <path d="M8 8h8M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2M16 16h0"/>
+          </svg>
+          Calculate DC Bias
+        </button>
+      </form>
 
-    {% if result %}
-    <section class="results">
-      <div class="results-header">
-        <span class="badge badge-{{ result.region }}">{{ result.region|upper }}</span>
-        <span class="badge {% if comparison.matches %}match-ok{% else %}match-bad{% endif %}">
-          {% if comparison.matches %}Matches within tolerance{% else %}Mismatch{% endif %}
-        </span>
-      </div>
-
-      {% if result.warnings %}
-      <ul class="warnings">
-        {% for warning in result.warnings %}
-        <li>{{ warning }}</li>
-        {% endfor %}
-      </ul>
+      {% if errors.get('_form') %}
+      <p class="error form-error">{{ errors['_form'] }}</p>
       {% endif %}
+    </section>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Quantity</th>
-            <th>Closed-form</th>
-            <th>Independent</th>
-            <th>Delta</th>
-          </tr>
-        </thead>
+    <section class="panel panel-circuit">
+      <h2>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 4v5.5a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3V20"/>
+          <circle cx="6" cy="3" r="1.7"/>
+          <circle cx="18" cy="21" r="1.7"/>
+        </svg>
+        Circuit: Common-Emitter Amplifier
+      </h2>
+
+      <svg class="schematic" viewBox="0 0 380 400" role="img"
+           aria-label="NPN common-emitter amplifier with voltage-divider bias">
+        <circle class="ring" cx="214" cy="215" r="36"/>
+
+        <g class="wire">
+          <path d="M100 55H240"/>
+          <path d="M100 55V95M100 165V215M100 215H200"/>
+          <path d="M100 215V255M100 325V360"/>
+          <path d="M240 55V95M240 165V181M200 203 240 181"/>
+          <path d="M200 227 240 249M240 249V270M240 340V360"/>
+        </g>
+
+        <g class="resistor">
+          <path d="M100 95l0 5 8 5-16 10 16 10-16 10 16 10-16 10 8 5 0 5"/>
+          <path d="M100 255l0 5 8 5-16 10 16 10-16 10 16 10-16 10 8 5 0 5"/>
+          <path d="M240 95l0 5 8 5-16 10 16 10-16 10 16 10-16 10 8 5 0 5"/>
+          <path d="M240 270l0 5 8 5-16 10 16 10-16 10 16 10-16 10 8 5 0 5"/>
+        </g>
+
+        <path class="base-bar" d="M200 188V242"/>
+        <polygon class="arrow" points="231,246 218.3,244.1 222.7,236.3"/>
+
+        <circle class="node" cx="100" cy="215" r="3.4"/>
+
+        <g class="gnd">
+          <path d="M100 360v12M86 372h28M90 378h20M94 384h12"/>
+          <path d="M240 360v12M226 372h28M230 378h20M234 384h12"/>
+        </g>
+
+        <text class="lbl" x="170" y="36" text-anchor="middle">V<tspan class="sub" dy="4">CC</tspan><tspan dy="-4"> = {{ circuit.vcc }}</tspan></text>
+
+        <text class="lbl" x="88" y="112" text-anchor="end">R<tspan class="sub" dy="4">1</tspan></text>
+        <text class="val" x="88" y="132" text-anchor="end">{{ circuit.r1 }}</text>
+
+        <text class="lbl" x="88" y="272" text-anchor="end">R<tspan class="sub" dy="4">2</tspan></text>
+        <text class="val" x="88" y="292" text-anchor="end">{{ circuit.r2 }}</text>
+
+        <text class="lbl" x="256" y="112">R<tspan class="sub" dy="4">C</tspan></text>
+        <text class="val" x="256" y="132">{{ circuit.rc }}</text>
+
+        <text class="lbl" x="256" y="287">R<tspan class="sub" dy="4">E</tspan></text>
+        <text class="val" x="256" y="307">{{ circuit.re }}</text>
+
+        <text class="lbl" x="262" y="208">Q<tspan class="sub" dy="4">1</tspan></text>
+        <text class="val" x="262" y="226">NPN</text>
+        <text class="val" x="262" y="244">(&beta; = {{ circuit.beta }})</text>
+      </svg>
+    </section>
+
+    <section class="panel panel-results">
+      <h2>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 20.5h18"/>
+          <path d="M6.5 20.5v-7M12 20.5V4.5M17.5 20.5v-10"/>
+        </svg>
+        DC Bias Results
+      </h2>
+
+      {% if result %}
+      <table class="results-table">
         <tbody>
-          {% for quantity, label, kind in [
-            ('ib', 'IB', 'current'),
-            ('ic', 'IC', 'current'),
-            ('ie', 'IE', 'current'),
-            ('vb', 'VB', 'voltage'),
-            ('ve', 'VE', 'voltage'),
-            ('vc', 'VC', 'voltage'),
-            ('vce', 'VCE', 'voltage')
+          {% for key, sym, sub, kind in [
+            ('vb', 'V', 'B', 'voltage'),
+            ('ve', 'V', 'E', 'voltage'),
+            ('vc', 'V', 'C', 'voltage'),
+            ('vce', 'V', 'CE', 'voltage'),
+            ('ib', 'I', 'B', 'current'),
+            ('ic', 'I', 'C', 'current'),
+            ('ie', 'I', 'E', 'current')
           ] %}
           <tr>
-            <td>{{ label }}</td>
-            <td>{% if kind == 'current' %}{{ result[quantity]|current }}{% else %}{{ result[quantity]|voltage }}{% endif %}</td>
-            <td>{% if kind == 'current' %}{{ independent[quantity]|current }}{% else %}{{ independent[quantity]|voltage }}{% endif %}</td>
-            <td>{{ comparison.deltas[quantity]|delta }}</td>
+            <th scope="row" class="label">{{ sym }}<sub>{{ sub }}</sub></th>
+            <td class="value">
+              {% if kind == 'current' %}{{ result[key]|current }}{% else %}{{ result[key]|volts }}{% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+
+      <div class="region region-{{ result.region }}">
+        <p class="region-title">
+          {% if result.region == 'active' %}
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M7.4 12.3l3.2 3.2 6-6.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {% elif result.region == 'saturation' %}
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.2 21.4 20H2.6z"/><path d="M12 9.4v4.4" stroke-linecap="round"/><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none"/></svg>
+          {% else %}
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.4"/><path d="M7 17 17 7"/></svg>
+          {% endif %}
+          <span>
+            {% if result.region == 'active' %}Active region approximation OK
+            {% elif result.region == 'saturation' %}Saturation &mdash; active-region model not valid
+            {% else %}Cutoff &mdash; transistor is off{% endif %}
+          </span>
+          <span class="pill pill-{{ result.region }}">{{ result.region|upper }}</span>
+        </p>
+        <p class="region-detail">
+          {% if result.region == 'active' %}
+          V<sub>CE</sub> = {{ result.vce|volts }} &gt; 0.2 V (transistor in active region)
+          {% elif result.region == 'saturation' %}
+          V<sub>CE</sub> = {{ result.vce|volts }} &lt; 0.2 V (active-region equations are not valid)
+          {% else %}
+          I<sub>B</sub> &le; 0 &rarr; I<sub>C</sub> = I<sub>E</sub> = 0, V<sub>CE</sub> = V<sub>CC</sub> = {{ result.vce|volts }}
+          {% endif %}
+        </p>
+      </div>
+
+      {% if comparison %}
+      <details class="crosscheck">
+        <summary>
+          <span class="summary-label">
+            <span class="chev" aria-hidden="true">&#9656;</span>
+            Closed-form vs Independent
+          </span>
+          <span class="badge {% if comparison.matches %}match-ok{% else %}match-bad{% endif %}">
+            {% if comparison.matches %}Matches within tolerance{% else %}Mismatch{% endif %}
+          </span>
+        </summary>
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Quantity</th>
+              <th>Closed-form</th>
+              <th>Independent</th>
+              <th>Delta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for key, sym, sub, kind in [
+              ('ib', 'I', 'B', 'current'),
+              ('ic', 'I', 'C', 'current'),
+              ('ie', 'I', 'E', 'current'),
+              ('vb', 'V', 'B', 'voltage'),
+              ('ve', 'V', 'E', 'voltage'),
+              ('vc', 'V', 'C', 'voltage'),
+              ('vce', 'V', 'CE', 'voltage')
+            ] %}
+            <tr>
+              <td>{{ sym }}<sub>{{ sub }}</sub></td>
+              <td>{% if kind == 'current' %}{{ result[key]|current }}{% else %}{{ result[key]|voltage }}{% endif %}</td>
+              <td>{% if kind == 'current' %}{{ independent[key]|current }}{% else %}{{ independent[key]|voltage }}{% endif %}</td>
+              <td>{{ comparison.deltas[key]|delta }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </details>
+      {% endif %}
+
+      {% else %}
+      <p class="empty">
+        Enter the circuit parameters and press <strong>Calculate DC Bias</strong> to see
+        V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>, I<sub>B</sub>, I<sub>C</sub> and I<sub>E</sub>.
+      </p>
+      {% endif %}
     </section>
-    {% endif %}
-  </main>
+
+  </div>
+
+  <section class="goal">
+    <div class="goal-title">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="8.6"/>
+        <circle cx="12" cy="12" r="4.2"/>
+        <circle cx="12" cy="12" r="1.2" fill="currentColor"/>
+      </svg>
+      Week 2 Goal
+    </div>
+    <p>
+      Rough target for this lab: Build a Flask web app that takes the circuit parameters,
+      computes the BJT DC bias (V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>,
+      I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub>) for a common-emitter amplifier with
+      voltage-divider bias, and displays the results.
+    </p>
+  </section>
+
+  <footer class="lab-footer">
+    <strong>LAB 02 &bull; ROUGH TARGET UI</strong> &mdash; เป้าหมายที่นักศึกษาควรทำให้เห็นผลในตาม:
+    ฟอร์มค่าอุปกรณ์ &rarr; Flask/Python Backend คำนวณ &rarr; แสดงค่า DC Bias พร้อมหน่วยและคำเตือนของแบบจำลอง
+  </footer>
+
+</div>
 </body>
 </html>
