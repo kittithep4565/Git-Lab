@@ -2,8 +2,8 @@
 ใช้สำหรับเรียน Lab compro ไฟฟ้า
 
 - GitHub: https://github.com/kittithep4565/Git-Lab.git
-- Lab 03 implementation commit: `a93ecb5` (feat: add fixed and emitter bias modes)
-- หลักฐานการตรวจ A1–A5: `docs/validation.md`
+- Lab 03 implementation commit: [`a93ecb5`](https://github.com/kittithep4565/Git-Lab/commit/a93ecb5)
+- หลักฐานการตรวจ A1–A5: [docs/validation.md](docs/validation.md)
 
 ## BJT DC Bias Web App (ENG29 2121)
 
