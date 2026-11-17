@@ -1,6 +1,10 @@
 # Git-Lab
 ใช้สำหรับเรียน Lab compro ไฟฟ้า
 
+- GitHub: https://github.com/kittithep4565/Git-Lab.git
+- Lab 03 implementation commit: `a93ecb5` (feat: add fixed and emitter bias modes)
+- หลักฐานการตรวจ A1–A5: `docs/validation.md`
+
 ## BJT DC Bias Web App (ENG29 2121)
 
 แอป Flask สำหรับคำนวณจุดทำงาน DC ของ NPN Common-Emitter amplifier เลือกได้สามโหมด:

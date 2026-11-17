@@ -152,7 +152,7 @@ def index():
     errors: dict[str, str] = {}
 
     if mode not in MODES:
-        errors["mode"] = f"Unknown bias mode: {mode}"
+        errors["mode"] = f"Unknown bias mode: {mode} (showing Voltage Divider Bias)"
         mode = "divider"
 
     texts, units = _defaults_for(mode)
@@ -165,7 +165,7 @@ def calculate():
     errors: dict[str, str] = {}
 
     if mode not in MODES:
-        errors["mode"] = f"Unknown bias mode: {mode}"
+        errors["mode"] = f"Unknown bias mode: {mode} (showing Voltage Divider Bias)"
         texts, units = _defaults_for("divider")
         return _render("divider", texts, units, errors, None, None, None)
 

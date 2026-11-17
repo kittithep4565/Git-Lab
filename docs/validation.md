@@ -26,7 +26,7 @@
 
 | สิ่งที่ตรวจ | ผล |
 |---|---|
-| โหมดที่ไม่รู้จัก (`/calculate` ด้วย `mode=bogus`) | แสดง `Unknown bias mode: bogus` และไม่คำนวณ (ไม่เดาเป็น Divider) |
+| โหมดที่ไม่รู้จัก (`/calculate` ด้วย `mode=bogus`) | แสดง `Unknown bias mode: bogus (showing Voltage Divider Bias)` ไม่คำนวณและไม่แสดงผลลัพธ์ |
 | หน่วยที่ไม่รู้จัก (`r1_unit=banana`) | แสดง `invalid unit` และไม่แสดงผล (เดิมเงียบ ๆ ใช้ตัวคูณ 1.0) |
 | ผลตรวจไขว้ (Closed-form vs Independent) | ทั้งสามโหมดขึ้น `Matches within tolerance` |
 | ฟอร์มโหมด Fixed | ไม่มีช่อง R1/R2/RE และไม่บังคับกรอก |
