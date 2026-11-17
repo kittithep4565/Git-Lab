@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lab 02: BJT DC Bias Web App</title>
+  <title>Lab 03: BJT DC Bias Web App</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -18,8 +18,8 @@
         <path d="M18 5v7M24 5v7M30 5v7M18 36v7M24 36v7M30 36v7M5 18h7M5 24h7M5 30h7M36 18h7M36 24h7M36 30h7"/>
       </svg>
       <div class="titles">
-        <h1>Lab 02: BJT DC Bias Web App</h1>
-        <p class="subtitle">ENG29 2121 &ndash; Common Emitter (Voltage Divider Bias)</p>
+        <h1>Lab 03: BJT DC Bias Web App</h1>
+        <p class="subtitle">ENG29 2121 &ndash; Common Emitter (Fixed, Emitter and Voltage Divider Bias)</p>
       </div>
     </div>
     <div class="course-badge">
@@ -30,6 +30,17 @@
       <span>Computer Programming for<br>Electrical Engineers</span>
     </div>
   </header>
+
+  <nav class="mode-tabs" aria-label="Bias mode">
+    {% for key, label in mode_options %}
+    <a class="mode-tab{% if key == mode %} is-active{% endif %}"
+       href="{{ url_for('bias.index', mode=key) }}"
+       {% if key == mode %}aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+  </nav>
+  {% if errors.get('mode') %}
+  <p class="error mode-error">{{ errors['mode'] }}</p>
+  {% endif %}
 
   <div class="layout">
 
@@ -44,8 +55,9 @@
       </h2>
 
       <form action="/calculate" method="post">
-        {% for field, meta in labels.items() %}
-        {% set sym = meta[0] %}{% set sub = meta[1] %}{% set hint = meta[2] %}
+        <input type="hidden" name="mode" value="{{ mode }}">
+        {% for field in fields %}
+        {% set sym = labels[field][0] %}{% set sub = labels[field][1] %}{% set hint = labels[field][2] %}
         <div class="field{% if errors.get(field) %} has-error{% endif %}">
           <label for="{{ field }}">
             <span class="sym">{{ sym }}{% if sub %}<sub>{{ sub }}</sub>{% endif %}</span>
@@ -94,6 +106,7 @@
         Circuit: Common-Emitter Amplifier
       </h2>
 
+      {% if mode == 'divider' %}
       <svg class="schematic" viewBox="0 0 380 400" role="img"
            aria-label="NPN common-emitter amplifier with voltage-divider bias">
         <circle class="ring" cx="214" cy="215" r="36"/>
@@ -141,6 +154,87 @@
         <text class="val" x="262" y="226">NPN</text>
         <text class="val" x="262" y="244">(&beta; = {{ circuit.beta }})</text>
       </svg>
+      {% elif mode == 'fixed' %}
+      <svg class="schematic" viewBox="0 0 380 400" role="img"
+           aria-label="NPN common-emitter amplifier with fixed bias">
+        <circle class="ring" cx="214" cy="215" r="36"/>
+
+        <g class="wire">
+          <path d="M120 55H260"/>
+          <path d="M120 55V95M120 165V215M120 215H200"/>
+          <path d="M260 55V95M260 165V181M240 181H260"/>
+          <path d="M200 203 240 181"/>
+          <path d="M200 227 240 249M240 249V330"/>
+        </g>
+
+        <g class="resistor">
+          <path d="M120 95l0 5 8 5-16 10 16 10-16 10 16 10-16 10 8 5 0 5"/>
+          <path d="M260 95l0 5 8 5-16 10 16 10-16 10 16 10-16 10 8 5 0 5"/>
+        </g>
+
+        <path class="base-bar" d="M200 188V242"/>
+        <polygon class="arrow" points="231,246 218.3,244.1 222.7,236.3"/>
+        <circle class="node" cx="120" cy="215" r="3.4"/>
+
+        <g class="gnd">
+          <path d="M240 330v12M226 342h28M230 348h20M234 354h12"/>
+        </g>
+
+        <text class="lbl" x="190" y="36" text-anchor="middle">V<tspan class="sub" dy="4">CC</tspan><tspan dy="-4"> = {{ circuit.vcc }}</tspan></text>
+
+        <text class="lbl" x="108" y="112" text-anchor="end">R<tspan class="sub" dy="4">B</tspan></text>
+        <text class="val" x="108" y="132" text-anchor="end">{{ circuit.rb }}</text>
+
+        <text class="lbl" x="276" y="112">R<tspan class="sub" dy="4">C</tspan></text>
+        <text class="val" x="276" y="132">{{ circuit.rc }}</text>
+
+        <text class="lbl" x="262" y="208">Q<tspan class="sub" dy="4">1</tspan></text>
+        <text class="val" x="262" y="226">NPN</text>
+        <text class="val" x="262" y="244">(&beta; = {{ circuit.beta }})</text>
+      </svg>
+      {% else %}
+      <svg class="schematic" viewBox="0 0 380 400" role="img"
+           aria-label="NPN common-emitter amplifier with emitter bias">
+        <circle class="ring" cx="214" cy="215" r="36"/>
+
+        <g class="wire">
+          <path d="M120 55H260"/>
+          <path d="M120 55V95M120 165V215M120 215H200"/>
+          <path d="M260 55V95M260 165V181M240 181H260"/>
+          <path d="M200 203 240 181"/>
+          <path d="M200 227 240 249M240 249V270M240 340V352"/>
+        </g>
+
+        <g class="resistor">
+          <path d="M120 95l0 5 8 5-16 10 16 10-16 10 16 10-16 10 8 5 0 5"/>
+          <path d="M260 95l0 5 8 5-16 10 16 10-16 10 16 10-16 10 8 5 0 5"/>
+          <path d="M240 270l0 5 8 5-16 10 16 10-16 10 16 10-16 10 8 5 0 5"/>
+        </g>
+
+        <path class="base-bar" d="M200 188V242"/>
+        <polygon class="arrow" points="231,246 218.3,244.1 222.7,236.3"/>
+        <circle class="node" cx="120" cy="215" r="3.4"/>
+
+        <g class="gnd">
+          <path d="M240 352v12M226 364h28M230 370h20M234 376h12"/>
+        </g>
+
+        <text class="lbl" x="190" y="36" text-anchor="middle">V<tspan class="sub" dy="4">CC</tspan><tspan dy="-4"> = {{ circuit.vcc }}</tspan></text>
+
+        <text class="lbl" x="108" y="112" text-anchor="end">R<tspan class="sub" dy="4">B</tspan></text>
+        <text class="val" x="108" y="132" text-anchor="end">{{ circuit.rb }}</text>
+
+        <text class="lbl" x="276" y="112">R<tspan class="sub" dy="4">C</tspan></text>
+        <text class="val" x="276" y="132">{{ circuit.rc }}</text>
+
+        <text class="lbl" x="256" y="287">R<tspan class="sub" dy="4">E</tspan></text>
+        <text class="val" x="256" y="307">{{ circuit.re }}</text>
+
+        <text class="lbl" x="262" y="208">Q<tspan class="sub" dy="4">1</tspan></text>
+        <text class="val" x="262" y="226">NPN</text>
+        <text class="val" x="262" y="244">(&beta; = {{ circuit.beta }})</text>
+      </svg>
+      {% endif %}
     </section>
 
     <section class="panel panel-results">
@@ -151,6 +245,7 @@
           <path d="M6.5 20.5v-7M12 20.5V4.5M17.5 20.5v-10"/>
         </svg>
         DC Bias Results
+        <span class="mode-tag">{{ mode_label }}</span>
       </h2>
 
       {% if result %}
@@ -246,7 +341,7 @@
 
       {% else %}
       <p class="empty">
-        Enter the circuit parameters and press <strong>Calculate DC Bias</strong> to see
+        Enter the {{ mode_label|lower }} parameters and press <strong>Calculate DC Bias</strong> to see
         V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>, I<sub>B</sub>, I<sub>C</sub> and I<sub>E</sub>.
       </p>
       {% endif %}
@@ -262,19 +357,20 @@
         <circle cx="12" cy="12" r="4.2"/>
         <circle cx="12" cy="12" r="1.2" fill="currentColor"/>
       </svg>
-      Week 2 Goal
+      Week 3 Goal
     </div>
     <p>
-      Rough target for this lab: Build a Flask web app that takes the circuit parameters,
-      computes the BJT DC bias (V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>,
-      I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub>) for a common-emitter amplifier with
-      voltage-divider bias, and displays the results.
+      Extend the Lab 02 calculator to three bias circuits: pick Fixed, Emitter or
+      Voltage Divider bias, enter only that mode's values, and read the DC operating
+      point (V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>, I<sub>B</sub>,
+      I<sub>C</sub>, I<sub>E</sub>) with its region warning.
     </p>
   </section>
 
   <footer class="lab-footer">
-    <strong>LAB 02 &bull; ROUGH TARGET UI</strong> &mdash; เป้าหมายที่นักศึกษาควรทำให้เห็นผลในตาม:
-    ฟอร์มค่าอุปกรณ์ &rarr; Flask/Python Backend คำนวณ &rarr; แสดงค่า DC Bias พร้อมหน่วยและคำเตือนของแบบจำลอง
+    <strong>LAB 03 &bull; MULTI-MODE BIAS</strong> &mdash; เป้าหมายของสัปดาห์นี้:
+    เลือกวงจรไบอัสได้สามแบบ &rarr; Flask/Python เลือกฟังก์ชันตามโหมดและแปลงหน่วยครั้งเดียว
+    &rarr; แสดงค่า DC Bias พร้อมหน่วย คำเตือนของแบบจำลอง และผลตรวจไขว้ที่ตรงกัน
   </footer>
 
 </div>

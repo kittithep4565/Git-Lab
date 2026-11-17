@@ -89,6 +89,112 @@ def solve_bias_independent(
     }
 
 
+def _bisect_base_current(residual, upper: float) -> float:
+    lo, hi = 0.0, upper
+    while residual(hi) > 0 and hi < 1e12:
+        hi *= 2
+
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if residual(mid) > 0:
+            lo = mid
+        else:
+            hi = mid
+
+    return (lo + hi) / 2
+
+
+def _point_from_ib(vcc: float, rc: float, beta: float, vbe: float, ib: float, re: float) -> dict:
+    ic = beta * ib
+    ie = (beta + 1) * ib
+    ve = ie * re
+    vb = ve + vbe
+    vc = vcc - ic * rc
+    vce = vc - ve
+
+    if not all(math.isfinite(value) for value in (ib, ic, ie, vb, ve, vc, vce)):
+        raise ValueError("operating point is out of range")
+
+    region = classify_region(ib, vce)
+    warnings = [SATURATION_WARNING] if region == "saturation" else []
+
+    return {
+        "ib": ib,
+        "ic": ic,
+        "ie": ie,
+        "vb": vb,
+        "ve": ve,
+        "vc": vc,
+        "vce": vce,
+        "region": region,
+        "warnings": warnings,
+    }
+
+
+def solve_fixed_independent(vcc: float, rb: float, rc: float, beta: float, vbe: float) -> dict:
+    """Nodal solution for fixed bias: base current from the RB branch."""
+    values = {"vcc": vcc, "rb": rb, "rc": rc, "beta": beta, "vbe": vbe}
+    errors = _validate_values(values)
+    if errors:
+        raise ValueError(next(iter(errors.values())))
+
+    ib = _bisect_base_current(lambda i: (vcc - vbe) / rb - i, vcc / rb)
+    if ib <= 0:
+        return {
+            "ib": 0.0,
+            "ic": 0.0,
+            "ie": 0.0,
+            "vb": vbe,
+            "ve": 0.0,
+            "vc": vcc,
+            "vce": vcc,
+            "region": "cutoff",
+            "warnings": [CUTOFF_WARNING],
+        }
+
+    return _point_from_ib(vcc, rc, beta, vbe, ib, 0.0)
+
+
+def solve_emitter_independent(
+    vcc: float, rb: float, re: float, rc: float, beta: float, vbe: float
+) -> dict:
+    """KCL at the base with RE feedback, solved by bisection on IB."""
+    values = {"vcc": vcc, "rb": rb, "re": re, "rc": rc, "beta": beta, "vbe": vbe}
+    errors = _validate_values(values)
+    if errors:
+        raise ValueError(next(iter(errors.values())))
+
+    ib = _bisect_base_current(
+        lambda i: (vcc - (vbe + (beta + 1) * i * re)) / rb - i,
+        vcc / rb,
+    )
+    if ib <= 0:
+        return {
+            "ib": 0.0,
+            "ic": 0.0,
+            "ie": 0.0,
+            "vb": vbe,
+            "ve": 0.0,
+            "vc": vcc,
+            "vce": vcc,
+            "region": "cutoff",
+            "warnings": [CUTOFF_WARNING],
+        }
+
+    return _point_from_ib(vcc, rc, beta, vbe, ib, re)
+
+
+def solve_independent(mode: str, values: dict) -> dict:
+    """Dispatch to the independent solver for the selected bias mode."""
+    if mode == "divider":
+        return solve_bias_independent(**values)
+    if mode == "fixed":
+        return solve_fixed_independent(**values)
+    if mode == "emitter":
+        return solve_emitter_independent(**values)
+    raise ValueError(f"unknown bias mode: {mode}")
+
+
 def compare_results(
     primary: dict,
     independent: dict,
