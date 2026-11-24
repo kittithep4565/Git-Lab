@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lab 03: BJT DC Bias Web App</title>
+  <title>Lab 04: BJT CE Amplifier Simulator (Lab 03 bias preserved)</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -18,8 +18,8 @@
         <path d="M18 5v7M24 5v7M30 5v7M18 36v7M24 36v7M30 36v7M5 18h7M5 24h7M5 30h7M36 18h7M36 24h7M36 30h7"/>
       </svg>
       <div class="titles">
-        <h1>Lab 03: BJT DC Bias Web App</h1>
-        <p class="subtitle">ENG29 2121 &ndash; Common Emitter (Fixed, Emitter and Voltage Divider Bias)</p>
+        <h1>Lab 04: BJT CE Amplifier Simulator</h1>
+        <p class="subtitle">ENG29 2121 &ndash; Lab 03 bias modes preserved &middot; CE SPICE DC / AC / Transient</p>
       </div>
     </div>
     <div class="course-badge">
@@ -349,6 +349,180 @@
 
   </div>
 
+  <section class="simulator" id="simulator" aria-labelledby="sim-title">
+    <header class="sim-header">
+      <div>
+        <p class="kicker">LAB 04 · BUILDING ON LAB 03</p>
+        <h2 id="sim-title">BJT CE Amplifier Simulator <span>v1</span></h2>
+        <p class="sim-intro">
+          One voltage-divider Common-Emitter circuit, simulated by a real external
+          <strong>ngspice</strong> process. The three Lab 3 bias modes above remain unchanged.
+        </p>
+      </div>
+      <span class="engine-badge{% if not sim_form.engine_ready %} is-offline{% endif %}">
+        {% if sim_form.engine_ready %}ngspice ready{% else %}ngspice not found{% endif %}
+      </span>
+    </header>
+
+    <div class="sim-analysis-tabs" role="radiogroup" aria-label="Analysis mode">
+      {% for key, label in sim_analysis_options %}
+      <label class="sim-tab{% if sim_form.analysis == key %} is-active{% endif %}">
+        <input type="radio" name="analysis" value="{{ key }}"
+               form="sim-form" {% if sim_form.analysis == key %}checked{% endif %}>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+    {% if sim_form.errors.get('analysis') %}
+    <p class="error">{{ sim_form.errors['analysis'] }}</p>
+    {% endif %}
+    <p class="sim-hint analysis-hint">
+      AC uses a unity source and a fixed 1 Hz&ndash;100 MHz sweep. Amplitude/frequency set the
+      transient SIN source. &beta;/V<sub>BE</sub> feed only the DC analytical reference.
+    </p>
+
+    <div class="sim-grid">
+      <form class="panel sim-form" id="sim-form" action="/simulate" method="post">
+        <h3>Circuit &amp; Source Parameters</h3>
+
+        <div class="sim-fields">
+          {% for field in sim_circuit_fields %}
+          {% set sym, sub = sim_labels[field] %}
+          <div class="field{% if sim_form.errors.get(field) %} has-error{% endif %}">
+            <label for="sim-{{ field }}">
+              <span class="sym">{{ sym }}{% if sub %}<sub>{{ sub }}</sub>{% endif %}</span>
+            </label>
+            <div class="control">
+              <input id="sim-{{ field }}" name="{{ field }}" type="number" step="any"
+                     value="{{ sim_form['values'][field] }}"{% if field in ('amp', 'freq') and sim_form.analysis == 'tran' %} required{% endif %}>
+              <select name="{{ field }}_unit" aria-label="{{ field }} unit">
+                {% for unit, _factor in sim_unit_options[field] %}
+                <option value="{{ unit }}"{% if sim_form['units'][field] == unit %} selected{% endif %}>{{ unit }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% if sim_form.errors.get(field) %}<span class="error">{{ sim_form.errors[field] }}</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <h4>Analytical reference only</h4>
+        <p class="sim-hint">β and VBE feed Lab 3's equations for comparison. SPICE uses the BJT model below.</p>
+        <div class="sim-fields sim-fields-ref">
+          {% for field in sim_analytical_fields %}
+          {% set sym, sub = sim_labels[field] %}
+          <div class="field{% if sim_form.errors.get(field) %} has-error{% endif %}">
+            <label for="sim-{{ field }}">
+              <span class="sym">{{ sym }}{% if sub %}<sub>{{ sub }}</sub>{% endif %}</span>
+            </label>
+            <div class="control">
+              <input id="sim-{{ field }}" name="{{ field }}" type="number" step="any"
+                     value="{{ sim_form['values'][field] }}"{% if sim_form.analysis == 'dc' %} required{% endif %}>
+              <select name="{{ field }}_unit" aria-label="{{ field }} unit">
+                {% for unit, _factor in sim_unit_options[field] %}
+                <option value="{{ unit }}"{% if sim_form['units'][field] == unit %} selected{% endif %}>{{ unit }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% if sim_form.errors.get(field) %}<span class="error">{{ sim_form.errors[field] }}</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <button class="primary" type="submit" id="sim-run">Run Simulation</button>
+        {% if sim_form.errors.get('_sim') %}
+        <p class="error form-error">{{ sim_form.errors['_sim'] }}</p>
+        {% endif %}
+      </form>
+
+      <div class="panel sim-output">
+        <h3>Simulation &amp; Plots</h3>
+        {% set s = sim_form.result %}
+        {% if sim_form.errors %}
+        <p class="sim-status error-state">
+          <strong>status: error</strong>
+          {% if sim_form.errors.get('_sim') %}<span>{{ sim_form.errors['_sim']|truncate(140) }}</span>
+          {% else %}<span>check the highlighted input field(s)</span>{% endif %}
+        </p>
+        {% endif %}
+        {% if s %}
+        <p class="sim-status ok">
+          <strong>status: success</strong>
+          <span>{{ s.engine }} {{ s.version }}</span>
+          <span>{{ s.analysis_label }}</span>
+          <span>model: {{ s.model }}</span>
+          <span>{{ s.model_source }}</span>
+        </p>
+        <p class="sim-provenance">
+          Source: <code>run.log</code> printed by this ngspice run in an isolated temp directory
+          (<code>{{ s.run_dir }}</code>, kept only when <code>LAB04_KEEP_RUNS=1</code>).
+          Netlist and log are expandable below; no cached or hard-coded plot values.
+        </p>
+
+        <p class="sim-circuit-line">
+          {% for field, text in s.circuit.items() %}<span>{{ field|upper }} {{ text }}</span>{% endfor %}
+        </p>
+
+        {% if s.analysis == 'dc' %}
+        <table class="results-table sim-table">
+          <thead><tr><th>Quantity</th><th>SPICE result</th></tr></thead>
+          <tbody>
+            {% for label, value in s.dc_points %}
+            <tr>
+              <th scope="row" class="label">{{ label }}</th>
+              <td class="value">{% if label == 'IC' %}{{ value|current }}{% else %}{{ value|volts }}{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="sim-note">I<sub>C</sub> is derived from the simulated collector voltage and R<sub>C</sub>; it is not a printed device current.</p>
+
+        <h4>Analytical vs SPICE</h4>
+        <table class="compare-table sim-compare">
+          <thead><tr><th>Qty</th><th>Analytical</th><th>SPICE</th><th>Δ</th></tr></thead>
+          <tbody>
+            {% for row in s.comparison_rows %}
+            <tr><td>{{ row.label }}</td><td>{{ row.analytical }}</td><td>{{ row.spice }}</td><td>{{ row.delta }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="sim-note">{{ s.assumption_note }}</p>
+
+        {% elif s.analysis == 'ac' %}
+        <p class="sim-note">
+          Vin reference: {{ s.ac_summary.vin_reference }} ·
+          peak gain {{ '%.2f'|format(s.ac_summary.peak_gain_db) }} dB
+          ({{ '%.2f'|format(s.ac_summary.peak_gain_linear) }}×) ·
+          {{ s.ac_summary.cutoff_note }}
+        </p>
+        <div class="plot-wrap">{{ s.gain_plot|safe }}</div>
+        <div class="plot-wrap">{{ s.phase_plot|safe }}</div>
+
+        {% else %}
+        <p class="sim-note">
+          {{ s.tran_summary.samples }} samples · Vin pp {{ s.tran_summary.vin_pp|voltage }} ·
+          Vout pp {{ s.tran_summary.vout_pp|voltage }} · {{ s.tran_summary.relation }}
+        </p>
+        <div class="plot-wrap">{{ s.wave_plot|safe }}</div>
+        {% endif %}
+
+        <details class="run-evidence">
+          <summary>Netlist &amp; ngspice run log (evidence)</summary>
+          <h4>Generated netlist</h4>
+          <pre>{{ s.netlist }}</pre>
+          <h4>Run log excerpt</h4>
+          <pre>{{ s.log_excerpt }}</pre>
+        </details>
+        {% else %}
+        <p class="empty">
+          Choose DC / AC / Transient and press <strong>Run Simulation</strong>.
+          Results, plots, units and the ngspice log will appear here.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
   <section class="goal">
     <div class="goal-title">
       <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
@@ -357,22 +531,65 @@
         <circle cx="12" cy="12" r="4.2"/>
         <circle cx="12" cy="12" r="1.2" fill="currentColor"/>
       </svg>
-      Week 3 Goal
+      Lab 03 + Lab 04 Goal
     </div>
     <p>
-      Extend the Lab 02 calculator to three bias circuits: pick Fixed, Emitter or
-      Voltage Divider bias, enter only that mode's values, and read the DC operating
-      point (V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>, I<sub>B</sub>,
-      I<sub>C</sub>, I<sub>E</sub>) with its region warning.
+      Lab 03 calculator: pick Fixed, Emitter or Voltage Divider bias and read the DC
+      operating point with its region warning. Lab 04 adds one CE voltage-divider
+      circuit simulated by real ngspice runs: <code>.op</code> operating point,
+      <code>.ac</code> gain/phase and <code>.tran</code> Vin/Vout waveforms.
     </p>
   </section>
 
   <footer class="lab-footer">
-    <strong>LAB 03 &bull; MULTI-MODE BIAS</strong> &mdash; เป้าหมายของสัปดาห์นี้:
-    เลือกวงจรไบอัสได้สามแบบ &rarr; Flask/Python เลือกฟังก์ชันตามโหมดและแปลงหน่วยครั้งเดียว
-    &rarr; แสดงค่า DC Bias พร้อมหน่วย คำเตือนของแบบจำลอง และผลตรวจไขว้ที่ตรงกัน
+    <strong>LAB 04 &bull; CE AMPLIFIER SIMULATOR v1</strong> &mdash; ต่อยอดจาก Lab 03:
+    DC Bias สามโหมดยังใช้เส้นทางเดิม &rarr; ฟอร์มใหม่เรียก ngspice จริง &rarr;
+    แสดงหน่วย สถานะ engine เวอร์ชัน โมเดล และแหล่งที่มาของผลแยกจากค่าอนาลิติก
   </footer>
 
 </div>
+<script>
+  (function () {
+    const form = document.getElementById("sim-form");
+    const button = document.getElementById("sim-run");
+    const circuitFields = {{ sim_circuit_fields|tojson }};
+
+    function syncSimForm() {
+      const checked = document.querySelector('input[name="analysis"][form="sim-form"]:checked');
+      const analysis = checked ? checked.value : "{{ sim_form.analysis }}";
+
+      document.querySelectorAll(".sim-tab").forEach(function (tab) {
+        const radio = tab.querySelector('input[name="analysis"]');
+        tab.classList.toggle("is-active", !!radio && radio.value === analysis);
+      });
+
+      form.querySelectorAll('input[type="number"]').forEach(function (input) {
+        const field = input.name;
+        const needed =
+          circuitFields.indexOf(field) !== -1 ||
+          (analysis === "dc" && (field === "beta" || field === "vbe")) ||
+          (analysis === "tran" && (field === "amp" || field === "freq"));
+        input.required = needed;
+        const wrapper = input.closest(".field");
+        if (wrapper) wrapper.classList.toggle("not-used", !needed);
+      });
+    }
+
+    document.querySelectorAll('input[name="analysis"][form="sim-form"]').forEach(function (radio) {
+      radio.addEventListener("change", syncSimForm);
+    });
+    syncSimForm();
+
+    // The Flask route is synchronous; this only makes the Running state visible
+    // while the ngspice subprocess is executing. Success/Error is rendered by
+    // the server after the response, never faked here.
+    form.addEventListener("submit", function () {
+      if (button && this.reportValidity()) {
+        button.disabled = true;
+        button.textContent = "Running ngspice…";
+      }
+    });
+  })();
+</script>
 </body>
 </html>
