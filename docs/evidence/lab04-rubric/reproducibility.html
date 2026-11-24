@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><title>Lab 04 Reproducibility</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;padding:30px 34px;font-family:"Segoe UI",Tahoma,sans-serif;background:#eef4f8;color:#16303f}
+  h1{margin:0 0 4px;font-size:24px} .sub{color:#47657a;font-size:12.5px;margin:0 0 18px}
+  h2{font-size:15px;margin:22px 0 8px}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #cfdde7}
+  th,td{text-align:left;padding:7px 11px;border-bottom:1px solid #e2ecf3;font-size:12.5px;vertical-align:top}
+  th{width:130px;background:#e6f0f6;color:#345269}
+  pre{background:#0f2633;color:#d7ecf5;padding:13px 15px;border-radius:7px;font-size:12px;line-height:1.55;overflow:auto;white-space:pre-wrap}
+  code{background:#f2f7fa;padding:1px 4px;border-radius:3px}
+  .ok{color:#166534;font-weight:700}
+</style></head><body>
+<h1>Lab 04 — Reproducibility &amp; GitHub</h1>
+<p class="sub">ข้อมูลจากเครื่องที่รันจริง · 879fa524bc9ab0209f62ac5cdd1e2f99bb11ffc8</p>
+<table><tr><th>Repo</th><td><code>https://github.com/kittithep4565/Git-Lab.git</code></td></tr>
+<tr><th>Branch</th><td><code>main</code></td></tr>
+<tr><th>Commit</th><td><code>879fa524bc9ab0209f62ac5cdd1e2f99bb11ffc8</code></td></tr>
+<tr><th>Message</th><td><code>feat(lab04): integrate real ngspice CE simulator with B1-B8 evidence</code></td></tr>
+<tr><th>Python</th><td><code>3.12.7</code></td></tr>
+<tr><th>Engine</th><td><code>ngspice 47 (C:\Users\B6827441\ngspice-47\Spice64\bin\ngspice.exe)</code></td></tr>
+<tr><th>BJT model</th><td><code>QNPN generic teaching model (no starter file found)</code></td></tr></table>
+
+<h2>ขั้นตอนรัน (จาก README)</h2>
+<pre>python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+$env:NGSPICE_EXE = 'C:\path\to\ngspice.exe'   # ถ้าไม่อยู่ใน PATH
+python run.py
+# เปิด http://127.0.0.1:5000/ แล้วกด Run Simulation (DC / AC / Transient)</pre>
+
+<h2>ผลรันเทสต์จริง</h2>
+<pre>...............................
+----------------------------------------------------------------------
+Ran 31 tests in 0.252s
+
+OK</pre>
+
+<h2>หลักฐาน git (commit + remote)</h2>
+<pre>879fa52 feat(lab04): integrate real ngspice CE simulator with B1-B8 evidence
+origin	https://github.com/kittithep4565/Git-Lab.git (fetch)
+origin	https://github.com/kittithep4565/Git-Lab.git (push)</pre>
+
+<p class="sub">Validation: docs/validation.md (A1–A5, B1–B8) · Evidence: docs/evidence/lab04-rubric/</p>
+</body></html>
